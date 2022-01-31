@@ -135,7 +135,7 @@ def load_model(args, verbose=False):
         model.freeze_unused_params()
         if verbose: print(model)
 
-    elif ext == '.pth' or ext == '.torch':
+    elif ext in ['.pth', '.torch']:
         if verbose: print('Loading model from {}...'.format(os.path.basename(args.model)))
         model, state = Model.load(filename=args.model, rotated_bbox=args.rotated_bbox)
         # Freeze unused params from training
@@ -199,26 +199,22 @@ def worker(rank, args, world, model, state):
         input_size = args.size * 2 if len(args.size) == 1 else args.size
 
         calibration_files = []
-        if args.int8:
-            # Get list of images to use for calibration
-            if os.path.isdir(args.calibration_images):
-                import glob
-                file_extensions = ['.jpg', '.JPG', '.jpeg', '.JPEG', '.png', '.PNG']
-                for ex in file_extensions:
-                    calibration_files += glob.glob("{}/*{}".format(args.calibration_images, ex), recursive=True)
+        if args.int8 and os.path.isdir(args.calibration_images):
+            import glob
+            file_extensions = ['.jpg', '.JPG', '.jpeg', '.JPEG', '.png', '.PNG']
+            for ex in file_extensions:
+                calibration_files += glob.glob("{}/*{}".format(args.calibration_images, ex), recursive=True)
                 # Only need enough images for specified num of calibration batches
-                if len(calibration_files) >= args.calibration_batches * args.dynamic_batch_opts[1]:
-                    calibration_files = calibration_files[:(args.calibration_batches * args.dynamic_batch_opts[1])]
-                else:
-                    # Number of images for calibration must be greater than or equal to the kOPT optimization profile
-                    if len(calibration_files) >= args.dynamic_batch_opts[1]:
-                        print('Only found enough images for {} batches. Continuing anyway...'.format(
-                            len(calibration_files) // args.dynamic_batch_opts[1]))
-                    else:
-                        raise RuntimeError('Not enough images found for calibration. ({} < {})'
-                                            .format(len(calibration_files), args.dynamic_batch_opts[1]))
+            if len(calibration_files) >= args.calibration_batches * args.dynamic_batch_opts[1]:
+                calibration_files = calibration_files[:(args.calibration_batches * args.dynamic_batch_opts[1])]
+            elif len(calibration_files) >= args.dynamic_batch_opts[1]:
+                print('Only found enough images for {} batches. Continuing anyway...'.format(
+                    len(calibration_files) // args.dynamic_batch_opts[1]))
+            else:
+                raise RuntimeError('Not enough images found for calibration. ({} < {})'
+                                    .format(len(calibration_files), args.dynamic_batch_opts[1]))
 
-                random.shuffle(calibration_files)
+            random.shuffle(calibration_files)
 
         precision = "FP32"
         if args.int8:

@@ -143,20 +143,18 @@ class CocoDataset(data.dataset.Dataset):
                 cat = self.categories_inv[cat]
             categories.append(cat)
 
-        if boxes:
-            target = (torch.FloatTensor(boxes),
-                      torch.FloatTensor(categories).unsqueeze(1))
-        else:
-            target = (torch.ones([1, 4]), torch.ones([1, 1]) * -1)
-
-        return target
+        return (
+            (torch.FloatTensor(boxes), torch.FloatTensor(categories).unsqueeze(1))
+            if boxes
+            else (torch.ones([1, 4]), torch.ones([1, 1]) * -1)
+        )
 
     def collate_fn(self, batch):
         'Create batch from multiple samples'
 
         if self.training:
             data, targets = zip(*batch)
-            max_det = max([t.size()[0] for t in targets])
+            max_det = max(t.size()[0] for t in targets)
             targets = [torch.cat([t, torch.ones([max_det - t.size()[0], 5]) * -1]) for t in targets]
             targets = torch.stack(targets, 0)
         else:
@@ -315,8 +313,6 @@ class RotatedCocoDataset(data.dataset.Dataset):
                         boxes[:, 2] = h
                         boxes[:, 3] = w
 
-                    pass
-
                 # Adjust theta
                 if self.absolute_angle:
                     # This is only needed in absolute angle mode.
@@ -392,20 +388,18 @@ class RotatedCocoDataset(data.dataset.Dataset):
                 cat = self.categories_inv[cat]
             categories.append(cat)
 
-        if boxes:
-            target = (torch.FloatTensor(boxes),
-                      torch.FloatTensor(categories).unsqueeze(1))
-        else:
-            target = (torch.ones([1, 5]), torch.ones([1, 1]) * -1)
-
-        return target
+        return (
+            (torch.FloatTensor(boxes), torch.FloatTensor(categories).unsqueeze(1))
+            if boxes
+            else (torch.ones([1, 5]), torch.ones([1, 1]) * -1)
+        )
 
     def collate_fn(self, batch):
         'Create batch from multiple samples'
 
         if self.training:
             data, targets = zip(*batch)
-            max_det = max([t.size()[0] for t in targets])
+            max_det = max(t.size()[0] for t in targets)
             targets = [torch.cat([t, torch.ones([max_det - t.size()[0], 6]) * -1]) for t in targets]
             targets = torch.stack(targets, 0)
         else:

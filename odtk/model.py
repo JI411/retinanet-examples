@@ -237,20 +237,23 @@ class Model(nn.Module):
             raise ValueError('No checkpoint {}'.format(filename))
 
         checkpoint = torch.load(filename, map_location=lambda storage, loc: storage)
-        kwargs = {}
-        for i in ['ratios', 'scales', 'angles']:
-            if i in checkpoint:
-                kwargs[i] = checkpoint[i]
+        kwargs = {
+            i: checkpoint[i]
+            for i in ['ratios', 'scales', 'angles']
+            if i in checkpoint
+        }
+
         if ('angles' in checkpoint) or rotated_bbox:
             kwargs['rotated_bbox'] = True
         # Recreate model from checkpoint instead of from individual backbones
         model = cls(backbones=checkpoint['backbone'], classes=checkpoint['classes'], **kwargs)
         model.load_state_dict(checkpoint['state_dict'])
 
-        state = {}
-        for key in ('iteration', 'optimizer', 'scheduler'):
-            if key in checkpoint:
-                state[key] = checkpoint[key]
+        state = {
+            key: checkpoint[key]
+            for key in ('iteration', 'optimizer', 'scheduler')
+            if key in checkpoint
+        }
 
         del checkpoint
         torch.cuda.empty_cache()
@@ -279,11 +282,11 @@ class Model(nn.Module):
         output_names = ['score_1', 'score_2', 'score_3', 'score_4', 'score_5',
                         'box_1', 'box_2', 'box_3', 'box_4', 'box_5']
         dynamic_axes = {input_names[0]: {0:'batch'}}
-        for _, name in enumerate(output_names):
+        for name in output_names:
             dynamic_axes[name] = dynamic_axes[input_names[0]]
         extra_args = {'opset_version': 12, 'verbose': verbose,
                       'input_names': input_names, 'output_names': output_names,
-                      'dynamic_axes': dynamic_axes} 
+                      'dynamic_axes': dynamic_axes}
         torch.onnx.export(self.cuda(), zero_input, onnx_bytes, **extra_args)
         self.exporting = False
 
