@@ -20,7 +20,7 @@ def infer(model, path, detections_file, resize, max_size, batch_size, mixed_prec
     'Run inference on images from path'
 
     DDP = DistributedDataParallel if not with_apex else ADDP
-    backend = 'pytorch' if isinstance(model, Model) or isinstance(model, DDP) else 'tensorrt'
+    backend = 'pytorch' if isinstance(model, (Model, DDP)) else 'tensorrt'
 
     stride = model.module.stride if isinstance(model, DDP) else model.stride
 
@@ -150,8 +150,11 @@ def infer(model, path, detections_file, resize, max_size, batch_size, mixed_prec
         if detections:
             # Save detections
             if detections_file and verbose: print('Writing {}...'.format(detections_file))
-            detections = {'annotations': detections}
-            detections['images'] = data_iterator.coco.dataset['images']
+            detections = {
+                'annotations': detections,
+                'images': data_iterator.coco.dataset['images'],
+            }
+
             if 'categories' in data_iterator.coco.dataset:
                 detections['categories'] = data_iterator.coco.dataset['categories']
             if detections_file:

@@ -28,7 +28,7 @@ def order_points(pts):
         (br, tr) = rightMost[torch.argsort(D, descending=True), :]
         pts_reorder.append(torch.stack([tl, tr, br, bl]))
 
-    return torch.stack([p for p in pts_reorder])
+    return torch.stack(list(pts_reorder))
 
 def rotate_boxes(boxes, points=False):
     '''
